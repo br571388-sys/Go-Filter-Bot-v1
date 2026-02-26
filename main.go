@@ -16,65 +16,101 @@ import (
 func main() {
 	defer func() {
 		if r := recover(); r != nil {
-			// Print reason for panic + stack for some sort of helpful log output
 			fmt.Println(r)
 			fmt.Println(string(debug.Stack()))
 		}
 	}()
 
-	// Run a useless http server to get a healthy build on koyeb
+	// ✅ STEP 1: Pehle Web Server Start Karo
+	// Render/Koyeb ko healthy build ke liye HTTP server chahiye
+	serverReady := make(chan bool, 1)
+
 	go func() {
 		http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-			fmt.Fprintf(w, "Waku Waku")
+			fmt.Fprintf(w, "Waku Waku - Bot is Running!")
 		})
 
-		http.ListenAndServe(":"+config.Port, nil)
+		// Server ready signal bhejo
+		serverReady <- true
+
+		port := config.Port
+		if port == "" {
+			port = "8080"
+		}
+
+		fmt.Println("🌐 Web server starting on port: " + port)
+		if err := http.ListenAndServe(":"+port, nil); err != nil {
+			fmt.Println("Web server error: " + err.Error())
+		}
 	}()
 
-	if config.BotToken == "" {
-		panic("Exiting Because No BOT_TOKEN Provided :(")
+	// ✅ STEP 2: Web Server ke ready hone ka wait karo (max 5 seconds)
+	select {
+	case <-serverReady:
+		fmt.Println("✅ Web server is ready!")
+		// Thoda extra time do server ko properly bind karne ke liye
+		time.Sleep(1 * time.Second)
+	case <-time.After(5 * time.Second):
+		fmt.Println("⚠️ Web server timeout, proceeding anyway...")
 	}
 
-	// Create bot from environment value.
+	// ✅ STEP 3: Ab Bot Token Check Karo
+	if config.BotToken == "" {
+		panic("❌ Exiting Because No BOT_TOKEN Provided :(")
+	}
+
+	fmt.Println("🤖 Starting Telegram Bot...")
+
+	// ✅ STEP 4: Bot Create Karo
 	b, err := gotgbot.NewBot(config.BotToken, &gotgbot.BotOpts{
 		BotClient: &gotgbot.BaseBotClient{
 			Client: http.Client{},
 			DefaultRequestOpts: &gotgbot.RequestOpts{
-				Timeout: gotgbot.DefaultTimeout, // Customise the default request timeout here
-				APIURL:  gotgbot.DefaultAPIURL,  // As well as the Default API URL here (in case of using local bot API servers)
+				Timeout: gotgbot.DefaultTimeout,
+				APIURL:  gotgbot.DefaultAPIURL,
 			},
 		},
 	})
 	if err != nil {
-		panic("failed to create new bot: " + err.Error())
+		panic("❌ Failed to create new bot: " + err.Error())
 	}
 
-	// To make sure no other instance of the bot is running
+	// ✅ STEP 5: Check karo koi aur instance toh nahi chal raha
 	_, err = b.GetUpdates(&gotgbot.GetUpdatesOpts{})
 	if err != nil {
-		fmt.Println("waiting 10s because : " + err.Error())
+		fmt.Println("⏳ Waiting 10s because: " + err.Error())
 		time.Sleep(10 * time.Second)
 	}
 
+	// ✅ STEP 6: Updater Setup Karo
 	updater := ext.NewUpdater(plugins.Dispatcher, &ext.UpdaterOpts{})
 
-	// Start receiving updates.
+	// ✅ STEP 7: Polling Start Karo
 	err = updater.StartPolling(b, &ext.PollingOpts{
 		DropPendingUpdates: true,
 		GetUpdatesOpts: &gotgbot.GetUpdatesOpts{
-			AllowedUpdates: []string{"message", "callback_query", "channel_post", "inline_query", "chosen_inline_result", "chat_member", "my_chat_member"},
+			AllowedUpdates: []string{
+				"message",
+				"callback_query",
+				"channel_post",
+				"inline_query",
+				"chosen_inline_result",
+				"chat_member",
+				"my_chat_member",
+			},
 		},
 	})
 	if err != nil {
-		panic("failed to start polling: " + err.Error())
+		panic("❌ Failed to start polling: " + err.Error())
 	}
 
-	fmt.Printf("@%s Started !\n", b.User.Username)
+	fmt.Printf("✅ @%s Started Successfully!\n", b.User.Username)
 
+	// ✅ STEP 8: AutoDelete Feature
 	if plugins.AutoDelete > 0 {
 		go autodelete.RunAutodel(b)
 	}
 
-	// Idle, to keep updates coming in, and avoid bot stopping.
+	// ✅ STEP 9: Bot ko idle rakhO — updates aate rahen
 	updater.Idle()
 }
