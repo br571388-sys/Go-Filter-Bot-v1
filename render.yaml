@@ -1,14 +1,19 @@
-services :
-   - type : web
-     name : gofilterbot
-     runtime : go
-     repo : https://github.com/Jisin0/Go-Filter-Bot.git
-     buildCommand: go build .
-     startCommand: ./Go-Filter-Bot
-     envVars :
-       - key: MONGODB_URI
-         value : your-mongodb-uri
-       - key: ADMINS
-         value: list-of-admins
-       - key: BOT_TOKEN
-         value : your-bots-token
+services:
+  - type: web
+    name: Go-Filter-Bot
+    env: go
+    buildCommand: go build -o app .
+    startCommand: ./app
+    plan: free
+    region: oregon
+    numInstances: 1
+    healthCheckPath: /
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: ADMINS
+        sync: false
+      - key: PORT
+        value: 10000
