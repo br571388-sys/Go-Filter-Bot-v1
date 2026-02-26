@@ -53,6 +53,10 @@ func init() {
 	Dispatcher.AddHandlerToGroup(handlers.NewCommand("broadcast", Broadcast), commandHandlerGroup)
 	Dispatcher.AddHandlerToGroup(handlers.NewCommand("concast", Broadcast), commandHandlerGroup)
 
+	// ✅ Settings commands (sirf admins ke liye)
+	Dispatcher.AddHandlerToGroup(handlers.NewCommand("autodelete", SetAutoDelete), commandHandlerGroup)
+	Dispatcher.AddHandlerToGroup(handlers.NewCommand("multifilter", SetMultiFilter), commandHandlerGroup)
+
 	Dispatcher.AddHandlerToGroup(handlers.NewCallback(callbackquery.Prefix("cbconnect("), CbConnect), callbackHandlerGroup)
 	Dispatcher.AddHandlerToGroup(handlers.NewCallback(callbackquery.Prefix("stopf("), CbStop), callbackHandlerGroup)
 	Dispatcher.AddHandlerToGroup(handlers.NewCallback(callbackquery.Prefix("edit("), CbEdit), callbackHandlerGroup)
