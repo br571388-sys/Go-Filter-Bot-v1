@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: Go-Filter-Bot
+    name: Go-Filter-Bot-v1
     env: go
     buildCommand: go build -o app .
     startCommand: ./app
